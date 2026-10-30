@@ -1,0 +1,11 @@
+name: Test
+on:
+  push:
+    paths:
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS -o /dev/null -w '%{http_code}' https://feeds.optifeed.co/tazecicek/942-1757075273.xml
