@@ -1,0 +1,50 @@
+name: Taze Cicek katalog
+
+# Bu repo public; satis verisi ve script private boostup-data reposunda durur.
+# DATA_TOKEN: boostup-data reposuna Contents okuma yetkili fine-grained token.
+on:
+  schedule:
+    - cron: '0 3 * * *'   # her gun 06:00 (Istanbul)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tazecicek-katalog
+  cancel-in-progress: false
+
+jobs:
+  katalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CDN reposu
+        uses: actions/checkout@v4
+
+      - name: Private veri reposu
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/boostup-data
+          token: ${{ secrets.DATA_TOKEN }}
+          path: _veri
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Katalogu uret
+        run: |
+          mkdir -p tazecicek
+          python3 _veri/scripts/katalog_uret.py \
+            "https://feeds.optifeed.co/tazecicek/942-1757075273.xml" \
+            _veri/data/tazecicek/ga4-satis.csv \
+            tazecicek/tc-katalog.json
+
+      - name: Degistiyse yayinla
+        run: |
+          rm -rf _veri
+          git config user.name "boostup-bot"
+          git config user.email "bot@boost-up.co"
+          git add tazecicek/tc-katalog.json
+          git diff --cached --quiet || git commit -m "Taze Cicek katalog guncellendi"
+          git push
