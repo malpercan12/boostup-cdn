@@ -1,0 +1,42 @@
+name: Turkcell Pasaj Apple onerileri
+
+# Turkcell Apple feed'ini okuyup app popup'inin okudugu JSON'u yayinlar.
+# Feed herkese acik urun verisi oldugu icin script bu public repoda durabilir.
+# Yayin: https://malpercan12.github.io/boostup-cdn/turkcell/pasaj-apple-oneriler.json
+on:
+  schedule:
+    - cron: '23 */6 * * *'   # 6 saatte bir (03:23, 09:23, 15:23, 21:23 Istanbul)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: turkcell-apple-oneriler
+  cancel-in-progress: false
+
+jobs:
+  oneriler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CDN reposu
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Onerileri uret
+        run: |
+          mkdir -p turkcell
+          python3 scripts/turkcell_apple_oneriler.py \
+            "https://www.turkcell.com.tr/datafeed/CUSTOMFEED/appletemmuzfeed.xml" \
+            turkcell/pasaj-apple-oneriler.json
+
+      - name: Yayinla
+        run: |
+          git config user.name "boostup-bot"
+          git config user.email "bot@boost-up.co"
+          git add turkcell/pasaj-apple-oneriler.json
+          git diff --cached --quiet || git commit -m "Turkcell Apple onerileri guncellendi"
+          git push
